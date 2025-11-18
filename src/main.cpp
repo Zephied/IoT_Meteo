@@ -16,7 +16,7 @@ float lastHumidity = 0.0;
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("Nathan")) {
+    if (client.connect("WeatherB2")) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
@@ -50,7 +50,7 @@ void setup() {
     }
 
     client.setServer("broker.emqx.io", 1883);
-    client.connect("Nathan");
+    client.connect("WeatherB2");
 }
 
 void loop() {
@@ -69,7 +69,7 @@ void loop() {
     lastTemperature = temperature;
     lastHumidity = humidity;
 
-    client.publish("Nathan/temperature", String(lastTemperature).c_str());
-    client.publish("Nathan/humidity", String(lastHumidity).c_str());
+    client.publish("WeatherB2/temperature", String(lastTemperature).c_str());
+    client.publish("WeatherB2/humidity", String(lastHumidity).c_str());
   }
 }
