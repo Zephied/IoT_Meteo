@@ -17,13 +17,17 @@
 
 **Commandes utiles (PlatformIO / PowerShell)**
 - Compiler et téléverser:
-	- `.platformio/penv/Scripts/platformio.exe run --target upload`
+	```
+  	.platformio/penv/Scripts/platformio.exe run --target upload
+  	```
 - Ouvrir le moniteur série (baud 115200) :
-	- `.platformio\penv\Scripts\platformio.exe device monitor -p COM3 -b 115200`
+	```
+	.platformio\penv\Scripts\platformio.exe device monitor -p COM3 -b 115200
+	```
 
 **Réinitialiser / régénérer le token MQTT**
 
-1. Ouvrez le moniteur série (`.platformio\penv\Scripts\platformio.exe device monitor -p COM3 -b 115200`).
+1. Ouvrez le moniteur série (```.platformio\penv\Scripts\platformio.exe device monitor -p COM3 -b 115200```).
 2. Envoyez `r` puis appuyez sur Entrée (ou envoyez `reset`).
 3. L'appareil supprimera la clé NVS et redémarrera : il affichera ensuite `MQTT id generated and saved to NVS: <nouvel_id>`.
 
