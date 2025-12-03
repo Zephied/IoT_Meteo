@@ -36,4 +36,4 @@
 - Pas de log série : vérifiez que `Serial.begin(115200);` est présent et que vous ouvrez le moniteur à `115200`.
 - Erreur upload : vérifiez le câble USB, le port COM et les drivers CH340/CP210x si nécessaire.
 
-retrouvez la [partie web](https://github.com/gabichcochet/NathanMeteoWEB/tree/main) pour visualiser les données publiées par cette station météo via MQTT.
+retrouvez la [partie web](https://github.com/gabichcochet/NathanMeteoWEB) pour visualiser les données publiées par cette station météo via MQTT.
