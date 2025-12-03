@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 #include <Preferences.h>
+#include "esp_system.h"
  
 WiFiManager wm;
 DHTesp dht;
@@ -20,17 +21,22 @@ String tempTopic = "WeatherB2/temperature/";
 String humTopic = "WeatherB2/humidity/";
 
 std::string generateRandomString(size_t length) {
-    std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    std::random_device rd;
-    std::mt19937 generator(rd()); // Générateur aléatoire
-    std::uniform_int_distribution<> distribution(0, characters.size() - 1);
+  const char characters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const size_t charsetSize = sizeof(characters) - 1;
 
-    std::string result;
-    for (size_t i = 0; i < length; ++i) {
-        result += characters[distribution(generator)];
+  std::string result;
+  result.reserve(length);
+
+  while (result.size() < length) {
+    uint32_t r = esp_random();
+    // consume the 32 bits in 8-bit chunks
+    for (int i = 0; i < 4 && result.size() < length; ++i) {
+      uint8_t v = r & 0xFF;
+      result += characters[v % charsetSize];
+      r >>= 8;
     }
-
-    return result;
+  }
+  return result;
 }
 
 String mqtt_id;
@@ -50,8 +56,18 @@ void reconnect() {
   }
 }
 
+void publish(float temperature, float humidity) {
+  lastTemperature = temperature;
+  lastHumidity = humidity;
+
+  client.publish((tempTopic+mqtt_id).c_str(), String(lastTemperature).c_str());
+  client.publish((humTopic+mqtt_id).c_str(), String(lastHumidity).c_str());
+}
+
 void setup() {
-  // wm.resetSettings(); // Uncomment to reset Wi-Fi settings
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("Envoyer 'r' ou 'reset' sur le port série pour régénérer le token MQTT");
 
   Preferences prefs;
   prefs.begin("mqtt", false);
@@ -76,8 +92,6 @@ void setup() {
   static WiFiManagerParameter mqttid(s.c_str());
   wm.addParameter(&mqttid);
   WiFi.mode(WIFI_STA);
-  
-  Serial.begin(115200);
   dht.setup(25, DHTesp::DHT11);
 
   Serial.println();
@@ -96,6 +110,26 @@ void setup() {
 }
 
 void loop() {
+  // Handle serial commands (reset token)
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.equalsIgnoreCase("r") || cmd.equalsIgnoreCase("reset")) {
+      Preferences prefs;
+      prefs.begin("mqtt", false);
+      prefs.remove("id");
+      prefs.end();
+      Serial.println("MQTT id removed from NVS, restarting...");
+      delay(200);
+      ESP.restart();
+    } else if (cmd.equalsIgnoreCase("wr")) {
+      wm.resetSettings();
+      Serial.println("Wi-Fi settings reset, restarting...");
+      delay(200);
+      ESP.restart();
+    }
+  }
+
   long currentTime = millis();
 
   if (!client.connected()) {
@@ -108,17 +142,8 @@ void loop() {
 
   if (currentTime - lastMSG > 60000) {
     lastMSG = currentTime;
-    lastTemperature = temperature;
-    lastHumidity = humidity;
-
-    client.publish((tempTopic+mqtt_id).c_str(), String(lastTemperature).c_str());
-    client.publish((humTopic+mqtt_id).c_str(), String(lastHumidity).c_str());
-
-  } else if (std::abs(temperature - lastTemperature) >= 0.5 || std::abs(humidity - lastHumidity) >= 5.0) {
-    lastTemperature = temperature;
-    lastHumidity = humidity;
-
-    client.publish((tempTopic+mqtt_id).c_str(), String(lastTemperature).c_str());
-    client.publish((humTopic+mqtt_id).c_str(), String(lastHumidity).c_str());
+    publish(temperature, humidity);
+  } else if (std::abs(temperature - lastTemperature) >= 1.0 || std::abs(humidity - lastHumidity) >= 5.0) {
+    publish(temperature, humidity);
   }
 }
